@@ -3,13 +3,6 @@
 # Set the base image
 FROM ubuntu:20.04
 
-# Set environment variables
-ENV USER root
-ENV HOME /root
-
-# Set working directory
-WORKDIR $HOME
-
 # Insert Steam prompt answers
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN echo steam steam/question select "I AGREE" | debconf-set-selections \
@@ -22,17 +15,26 @@ RUN dpkg --add-architecture i386 \
  && apt-get install -y --no-install-recommends ca-certificates locales steamcmd \
  && rm -rf /var/lib/apt/lists/*
 
-# Add unicode support
-RUN locale-gen en_US.UTF-8
-ENV LANG 'en_US.UTF-8'
-ENV LANGUAGE 'en_US:en'
-
 # Create symlink for executable
 RUN ln -s /usr/games/steamcmd /usr/bin/steamcmd
 
+# Add unicode support
+RUN locale-gen en_US.UTF-8
+
+# Prepare steamcmd user
+RUN useradd -md /home/steam -s /bin/bash steam
+
+# Switch user
+#USER steam:steam
+#WORKDIR /home/steam
+
+# Set Locale variables
+ENV LANG 'en_US.UTF-8'
+ENV LANGUAGE 'en_US:en'
+
 # Update SteamCMD and verify latest version
-RUN steamcmd +quit
+RUN su steam -c "steamcmd +quit"
 
 # Set default command
-ENTRYPOINT ["steamcmd"]
-CMD ["+help", "+quit"]
+ENTRYPOINT ["su", "steam", "-c"]
+CMD ["steamcmd +help +quit"]
